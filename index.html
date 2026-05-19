@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Aura AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════
+   RESET & VARIABLES
+════════════════════════════════════════ */
+*, *::before, *::after {
+  margin: 0; padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+:root {
+  --bg:         #07090f;
+  --panel:      #0c0f1a;
+  --panel2:     #101422;
+  --border:     rgba(255,255,255,0.07);
+  --border2:    rgba(255,255,255,0.12);
+
+  --violet:     #7c6fe0;
+  --violet2:    #5b4ec9;
+  --violet-dim: rgba(124,111,224,0.13);
+  --violet-glow:rgba(124,111,224,0.28);
+  --cyan:       #64e4d8;
+  --cyan-dim:   rgba(100,228,216,0.1);
+
+  --text:       #dde3f0;
+  --text2:      #6e7fa0;
+  --text3:      #32405a;
+  --green:      #4ade98;
+  --red:        #f87171;
+
+  --radius:     18px;
+  --sb-width:   272px;
+}
+
+html { width: 100%; height: 100%; height: -webkit-fill-available; }
+body {
+  width: 100%; height: 100%; height: -webkit-fill-available;
+  background: var(--bg); color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  overflow: hidden; overscroll-behavior: none;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+}
+
+body::after {
+  content: ''; position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.55;
+}
+
+.ambient {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 65% 55% at 15% 5%,  rgba(124,111,224,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 85% 95%, rgba(100,228,216,0.05) 0%, transparent 60%);
+}
+
+/* ════════════════════════════════════════
+   API / ONBOARDING SCREEN
+════════════════════════════════════════ */
+#apiScreen {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 40% 30%, #0d1128 0%, #07090f 70%);
+  display: flex; align-items: flex-start; justify-content: center;
+  z-index: 9999; padding: 24px 16px 40px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+#apiScreen.hidden { display: none; }
+
+.api-card {
+  background: linear-gradient(150deg, rgba(13,17,34,0.97), rgba(8,10,20,0.95));
+  border: 1px solid rgba(124,111,224,0.22);
+  border-radius: 24px; padding: 44px 32px 36px;
+  max-width: 420px; width: 100%; text-align: center;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(124,111,224,0.12);
+  position: relative; overflow: hidden; margin: auto 0;
+}
+.api-card::before {
+  content: ''; position: absolute; top: -80px; left: 50%;
+  transform: translateX(-50%);
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(124,111,224,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.api-icon {
+  width: 76px; height: 76px;
+  background: linear-gradient(135deg, var(--violet), var(--violet2));
+  border-radius: 24px; margin: 0 auto 24px;
+  display: flex; align-items: center; justify-content: center; font-size: 34px;
+  box-shadow: 0 12px 44px rgba(124,111,224,0.45);
+  animation: logopulse 4s ease-in-out infinite;
+}
+@keyframes logopulse {
+  0%,100% { box-shadow: 0 12px 32px rgba(124,111,224,0.35); }
+  50%      { box-shadow: 0 12px 56px rgba(124,111,224,0.6); }
+}
+
+.api-card h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 8px;
+}
+.api-card > p {
+  color: var(--text2); font-size: 14px; line-height: 1.75; margin-bottom: 4px;
+}
+.api-card > p strong { color: var(--cyan); }
+
+/* ── Provider Selector ── */
+.provider-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.8px;
+  color: var(--text3); font-weight: 700; text-align: left;
+  margin: 20px 0 10px;
+}
+.provider-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin-bottom: 20px;
+}
+.provider-btn {
+  padding: 12px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 14px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transition: all 0.2s; color: var(--text2);
+  font-family: 'Outfit', sans-serif;
+}
+.provider-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #fff; }
+.provider-btn.selected {
+  border-color: var(--violet); background: var(--violet-dim); color: #fff;
+  box-shadow: 0 0 0 3px rgba(124,111,224,0.15);
+}
+.provider-btn.selected-openai {
+  border-color: #10a37f; background: rgba(16,163,127,0.1); color: #fff;
+  box-shadow: 0 0 0 3px rgba(16,163,127,0.12);
+}
+.provider-btn.selected-gemini {
+  border-color: #4285f4; background: rgba(66,133,244,0.1); color: #fff;
+  box-shadow: 0 0 0 3px rgba(66,133,244,0.12);
+}
+.provider-icon { font-size: 24px; line-height: 1; }
+.provider-name { font-size: 12px; font-weight: 600; }
+.provider-model { font-size: 10px; color: var(--text3); margin-top: -2px; }
+.provider-btn.selected .provider-model { color: rgba(124,111,224,0.75); }
+.provider-btn.selected-openai .provider-model { color: rgba(16,163,127,0.75); }
+.provider-btn.selected-gemini .provider-model { color: rgba(66,133,244,0.75); }
+
+.api-howto {
+  background: rgba(100,228,216,0.05); border: 1px solid rgba(100,228,216,0.18);
+  border-radius: 14px; padding: 14px 18px; margin: 0 0 16px;
+  text-align: left; font-size: 13px; color: rgba(100,228,216,0.8); line-height: 1.7;
+}
+.api-howto strong { color: var(--cyan); display: block; margin-bottom: 4px; font-size: 13.5px; }
+.api-howto a { color: rgba(100,228,216,0.85); }
+
+.key-row { position: relative; margin-bottom: 12px; }
+.api-input {
+  width: 100%; background: rgba(0,0,0,0.45);
+  border: 1.5px solid rgba(124,111,224,0.22);
+  color: #fff; border-radius: 13px;
+  padding: 14px 18px; font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none; transition: border-color 0.22s, box-shadow 0.22s;
+  letter-spacing: 0.5px;
+}
+.api-input:focus { border-color: rgba(124,111,224,0.55); box-shadow: 0 0 0 4px rgba(124,111,224,0.1); }
+.api-input::placeholder { color: rgba(255,255,255,0.2); }
+.toggle-vis {
+  position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 16px; padding: 4px;
+  transition: color 0.2s;
+}
+.toggle-vis:hover { color: var(--text2); }
+
+.api-btn-primary {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--violet), var(--violet2));
+  border: none; color: #fff; border-radius: 13px;
+  font-size: 15px; font-weight: 600; font-family: 'Outfit', sans-serif;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 6px 30px rgba(124,111,224,0.4); margin-bottom: 10px;
+}
+.api-btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 10px 40px rgba(124,111,224,0.55); }
+.api-btn-primary:active { transform: translateY(0); }
+
+.api-err { color: var(--red); font-size: 12.5px; margin-bottom: 10px; display: none; text-align: left; }
+.api-err.show { display: block; }
+
+.api-foot { font-size: 12px; color: var(--text3); margin-top: 14px; line-height: 1.6; }
+.api-foot a { color: rgba(100,228,216,0.6); text-decoration: none; }
+
+/* Saved keys list */
+.saved-keys-section { margin-top: 16px; text-align: left; }
+.saved-keys-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.8px; color: var(--text3); font-weight: 700; margin-bottom: 8px; }
+.saved-key-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); margin-bottom: 6px;
+  cursor: pointer; transition: all 0.15s; background: rgba(255,255,255,0.02);
+}
+.saved-key-item:hover { background: var(--violet-dim); border-color: rgba(124,111,224,0.3); }
+.saved-key-badge {
+  font-size: 16px; flex-shrink: 0;
+}
+.saved-key-info { flex: 1; min-width: 0; }
+.saved-key-provider { font-size: 12px; font-weight: 600; color: #fff; }
+.saved-key-mask { font-size: 11px; color: var(--text2); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-key-del { background: none; border: none; color: rgba(248,113,113,0.4); cursor: pointer; font-size: 16px; padding: 2px 5px; border-radius: 6px; transition: all 0.2s; }
+.saved-key-del:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* ════════════════════════════════════════
+   LAYOUT SHELL
+════════════════════════════════════════ */
+#shell { display: flex; width: 100%; height: 100%; position: relative; z-index: 1; }
+
+#overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 800; backdrop-filter: blur(4px); }
+#overlay.show { display: block; }
+
+/* ════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════ */
+#sidebar {
+  width: var(--sb-width); height: 100%;
+  background: var(--panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  position: fixed; top: 0; left: 0; z-index: 900;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 8px 0 48px rgba(0,0,0,0.65);
+}
+#sidebar.open { transform: translateX(0); }
+
+.sb-head {
+  padding: 20px 18px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.sb-brand { display: flex; align-items: center; gap: 10px; }
+.sb-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--violet), var(--violet2));
+  border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; box-shadow: 0 4px 16px rgba(124,111,224,0.35);
+}
+.sb-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.9); }
+.sb-close { background: none; border: none; color: var(--text3); font-size: 17px; cursor: pointer; padding: 6px; border-radius: 8px; transition: all 0.2s; line-height: 1; }
+.sb-close:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.sb-new {
+  margin: 14px 14px 8px; flex-shrink: 0; padding: 12px 16px;
+  background: var(--violet-dim); border: 1px solid rgba(124,111,224,0.25);
+  color: rgba(255,255,255,0.78); border-radius: 13px;
+  font-size: 13.5px; font-weight: 600; font-family: 'Outfit', sans-serif;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+}
+.sb-new:hover { background: rgba(124,111,224,0.2); border-color: rgba(124,111,224,0.4); color: #fff; }
+.sb-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--text3); font-weight: 600; padding: 10px 18px 5px; flex-shrink: 0; }
+.sb-list { flex: 1; overflow-y: auto; padding: 4px 10px 16px; scrollbar-width: thin; scrollbar-color: rgba(124,111,224,0.15) transparent; }
+.sb-list::-webkit-scrollbar { width: 3px; }
+.sb-list::-webkit-scrollbar-thumb { background: rgba(124,111,224,0.2); border-radius: 3px; }
+
+.chat-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid transparent; margin-bottom: 2px; transition: all 0.15s;
+}
+.chat-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); }
+.chat-item.active { background: var(--violet-dim); border-color: rgba(124,111,224,0.28); }
+.chat-item-info { flex: 1; min-width: 0; }
+.chat-item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text2); }
+.chat-item.active .chat-item-title { color: #fff; }
+.chat-item-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.chat-del { background: none; border: none; color: rgba(248,113,113,0.3); cursor: pointer; opacity: 0; font-size: 14px; padding: 4px 6px; border-radius: 7px; transition: all 0.2s; flex-shrink: 0; }
+.chat-item:hover .chat-del { opacity: 1; }
+.chat-del:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* ════════════════════════════════════════
+   MAIN AREA
+════════════════════════════════════════ */
+#main { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; width: 100%; min-width: 0; }
+
+/* ════════════════════════════════════════
+   HEADER
+════════════════════════════════════════ */
+.header {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; background: rgba(7,9,15,0.9); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(24px); z-index: 10; position: relative;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.menu-btn {
+  width: 40px; height: 40px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border); border-radius: 11px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4.5px;
+  transition: all 0.2s; flex-shrink: 0; color: rgba(255,255,255,0.35);
+}
+.menu-btn:hover { background: var(--violet-dim); border-color: rgba(124,111,224,0.3); color: rgba(255,255,255,0.85); }
+.menu-btn span { display: block; height: 1.5px; background: currentColor; border-radius: 2px; }
+.menu-btn span:nth-child(1) { width: 16px; }
+.menu-btn span:nth-child(2) { width: 10px; align-self: flex-start; margin-left: 3px; }
+.menu-btn span:nth-child(3) { width: 16px; }
+
+.brand-area { display: flex; align-items: center; gap: 10px; }
+.brand-logo {
+  width: 38px; height: 38px; background: linear-gradient(135deg, var(--violet), var(--violet2));
+  border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px;
+  box-shadow: 0 0 24px rgba(124,111,224,0.4); animation: logopulse 4s ease-in-out infinite;
+}
+.brand-text { line-height: 1.2; }
+.brand-name { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+.brand-sub { font-size: 10px; color: var(--text3); font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 22px;
+  font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  font-family: 'Outfit', sans-serif; flex-shrink: 0;
+}
+.status-pill.on  { background: rgba(74,222,152,0.07);  border: 1px solid rgba(74,222,152,0.25);  color: var(--green); }
+.status-pill.off { background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.22); color: var(--red);   }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 2.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ════════════════════════════════════════
+   MESSAGES AREA
+════════════════════════════════════════ */
+#msgs {
+  flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain; padding: 20px 14px;
+  display: flex; flex-direction: column; gap: 14px;
+  scrollbar-width: thin; scrollbar-color: rgba(124,111,224,0.12) transparent; min-height: 0;
+}
+#msgs::-webkit-scrollbar { width: 4px; }
+#msgs::-webkit-scrollbar-thumb { background: rgba(124,111,224,0.18); border-radius: 3px; }
+
+.empty-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 14px; padding: 32px 24px; min-height: 300px;
+}
+.empty-icon {
+  width: 92px; height: 92px;
+  background: linear-gradient(135deg, rgba(124,111,224,0.18), rgba(91,78,201,0.1));
+  border: 1px solid rgba(124,111,224,0.25); border-radius: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px; margin-bottom: 6px; animation: logopulse 4s ease-in-out infinite;
+}
+.empty-state h2 { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.empty-state p { color: var(--text2); font-size: 14px; line-height: 1.8; max-width: 290px; }
+
+.quick-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; max-width: 380px; }
+.chip {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 12.5px; padding: 8px 16px; border-radius: 22px;
+  cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif; font-weight: 500;
+}
+.chip:hover { background: var(--violet-dim); border-color: rgba(124,111,224,0.35); color: #fff; transform: translateY(-1px); }
+.chip:active { transform: translateY(0); }
+
+.msg-row { display: flex; animation: fadeUp 0.28s ease-out; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.msg-row.user { justify-content: flex-end; }
+.msg-row.ai   { justify-content: flex-start; }
+
+.bubble {
+  max-width: 85%; padding: 13px 18px; border-radius: 20px;
+  font-size: 14px; line-height: 1.8; word-break: break-word;
+}
+.msg-row.user .bubble {
+  background: linear-gradient(135deg, var(--violet) 0%, var(--violet2) 100%);
+  border-bottom-right-radius: 5px; color: #fff; font-weight: 450;
+  box-shadow: 0 4px 22px rgba(124,111,224,0.3);
+}
+.msg-row.ai .bubble {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-bottom-left-radius: 5px; color: var(--text);
+}
+.bubble img { width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; display: block; }
+
+.code-wrap { margin: 10px 0 4px; }
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(124,111,224,0.08); border: 1px solid rgba(124,111,224,0.18);
+  border-bottom: none; border-radius: 12px 12px 0 0; padding: 8px 14px;
+}
+.code-lang { font-size: 11px; color: rgba(124,111,224,0.85); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.copy-btn {
+  background: rgba(124,111,224,0.12); border: 1px solid rgba(124,111,224,0.22);
+  color: rgba(124,111,224,0.75); font-size: 11px; padding: 4px 10px;
+  border-radius: 6px; cursor: pointer; transition: all 0.2s;
+  font-family: 'Outfit', sans-serif; font-weight: 600;
+}
+.copy-btn:hover { background: rgba(124,111,224,0.25); color: #fff; }
+.bubble pre {
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(124,111,224,0.12);
+  border-radius: 0 0 12px 12px; padding: 14px 16px;
+  overflow-x: auto; font-size: 12.5px; font-family: 'JetBrains Mono', monospace;
+  line-height: 1.7; white-space: pre; color: #dde3f0; margin: 0;
+}
+.bubble code.inline {
+  background: rgba(124,111,224,0.12); padding: 2px 7px; border-radius: 5px;
+  font-size: 12.5px; font-family: 'JetBrains Mono', monospace; color: rgba(124,111,224,0.95);
+}
+.bubble strong { color: #c4baff; font-weight: 650; }
+.bubble em { color: var(--cyan); font-style: normal; font-weight: 500; }
+.bubble h1,.bubble h2,.bubble h3 { font-family: 'Playfair Display', serif; color: #fff; font-weight: 700; margin: 12px 0 6px; }
+.bubble h1{font-size:20px} .bubble h2{font-size:17px} .bubble h3{font-size:15px}
+.bubble ul,.bubble ol { padding-left: 20px; margin: 6px 0; }
+.bubble li { margin: 4px 0; line-height: 1.75; }
+.bubble a { color: var(--cyan); text-decoration: underline; }
+.bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+.typing-row { display: flex; }
+.typing-bub {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 20px; border-bottom-left-radius: 5px;
+  padding: 14px 18px; display: flex; gap: 6px; align-items: center;
+}
+.t-dot { width: 7px; height: 7px; border-radius: 50%; animation: tdot 1.4s ease-in-out infinite; }
+.t-dot:nth-child(1){background:var(--violet)}
+.t-dot:nth-child(2){background:var(--violet2);animation-delay:.2s}
+.t-dot:nth-child(3){background:rgba(124,111,224,0.3);animation-delay:.4s}
+@keyframes tdot{0%,100%{transform:scale(0.4);opacity:.2}50%{transform:scale(1);opacity:1}}
+
+/* ════════════════════════════════════════
+   CAMERA SECTION
+════════════════════════════════════════ */
+#camSection { display: none; flex-shrink: 0; background: #000; border-top: 1px solid var(--border); padding: 14px 16px; position: relative; }
+#camVideo { width: 100%; max-height: 220px; object-fit: cover; border-radius: 14px; border: 1px solid rgba(124,111,224,0.2); background: #111; display: block; }
+#snapCanvas { position: absolute; top: -9999px; left: -9999px; visibility: hidden; }
+.cam-controls { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+.cam-btn { padding: 10px 26px; border: none; border-radius: 11px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.18s; font-family: 'Outfit', sans-serif; }
+.cam-btn.capture { background: linear-gradient(135deg, var(--violet), var(--violet2)); color: #fff; box-shadow: 0 4px 20px rgba(124,111,224,0.35); }
+.cam-btn.close-cam { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: #f87171; }
+.cam-btn:hover { transform: scale(1.04); filter: brightness(1.1); }
+.cam-btn:active { transform: scale(0.96); }
+.cam-help { display: none; padding: 14px 16px; background: rgba(248,113,113,0.06); border-top: 1px solid rgba(248,113,113,0.15); }
+.cam-help.show { display: block; }
+.cam-help p { font-size: 12.5px; color: rgba(248,113,113,0.8); line-height: 1.7; }
+.cam-help strong { color: #f87171; }
+
+/* ════════════════════════════════════════
+   IMAGE PREVIEW BAR
+════════════════════════════════════════ */
+#imgPreviewBar { display: none; flex-shrink: 0; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(124,111,224,0.05); border-top: 1px solid rgba(124,111,224,0.12); }
+#imgPreviewBar.show { display: flex; }
+#imgThumb { width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(124,111,224,0.28); flex-shrink: 0; }
+.img-label { flex: 1; }
+.img-label strong { display: block; font-size: 13px; color: var(--text); }
+.img-label span { font-size: 11.5px; color: var(--text2); }
+.img-remove { background: none; border: none; color: rgba(248,113,113,0.5); cursor: pointer; font-size: 24px; line-height: 1; padding: 4px; transition: color 0.2s; }
+.img-remove:hover { color: #f87171; }
+
+/* ════════════════════════════════════════
+   INPUT BAR
+════════════════════════════════════════ */
+.input-bar {
+  flex-shrink: 0; padding: 10px 14px 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  background: rgba(7,9,15,0.94); border-top: 1px solid var(--border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.rec-indicator { display: none; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(124,111,224,0.07); border: 1px solid rgba(124,111,224,0.18); border-radius: 10px; margin-bottom: 8px; }
+.rec-indicator.show { display: flex; }
+.rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); animation: blink 1s ease-in-out infinite; flex-shrink: 0; }
+.rec-label { font-size: 12.5px; color: rgba(124,111,224,0.85); font-weight: 500; flex: 1; }
+.rec-stop { background: none; border: none; color: rgba(248,113,113,0.75); font-size: 12px; font-weight: 700; cursor: pointer; padding: 3px 8px; border-radius: 6px; transition: all 0.2s; font-family: 'Outfit', sans-serif; }
+.rec-stop:hover { background: rgba(248,113,113,0.1); color: #f87171; }
+
+.input-row {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.03); border: 1.5px solid rgba(124,111,224,0.14);
+  border-radius: 16px; padding: 5px 6px 5px 16px; transition: border-color 0.22s, box-shadow 0.22s;
+}
+.input-row:focus-within { border-color: rgba(124,111,224,0.45); box-shadow: 0 0 0 4px rgba(124,111,224,0.08); }
+#msgInput { flex: 1; background: none; border: none; color: #fff; font-size: 14.5px; font-family: 'Outfit', sans-serif; outline: none; padding: 9px 0; min-width: 0; font-weight: 400; }
+#msgInput::placeholder { color: rgba(255,255,255,0.18); }
+
+.action-btns { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.act-btn { width: 38px; height: 38px; border: none; border-radius: 10px; cursor: pointer; font-size: 17px; display: flex; align-items: center; justify-content: center; transition: all 0.18s; background: transparent; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+.act-btn:hover { background: var(--violet-dim); color: rgba(255,255,255,0.9); transform: scale(1.07); }
+.act-btn:active { transform: scale(0.88); }
+.act-btn.active-mic { background: var(--violet-dim); color: var(--violet); }
+.act-btn.active-cam { color: var(--cyan); }
+
+.send-btn { width: 44px; height: 44px; border: none; background: linear-gradient(135deg, var(--violet), var(--violet2)); color: #fff; border-radius: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 20px rgba(124,111,224,0.35); transition: all 0.2s; }
+.send-btn:hover { filter: brightness(1.12); transform: scale(1.05); box-shadow: 0 6px 28px rgba(124,111,224,0.5); }
+.send-btn:active { transform: scale(0.92); }
+.send-btn svg { width: 15px; height: 15px; }
+
+.input-hint { text-align: center; font-size: 10.5px; color: var(--text3); margin-top: 8px; letter-spacing: 0.3px; }
+#fileInput { display: none; }
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+#toast {
+  position: fixed; bottom: 90px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: rgba(12,15,26,0.97); border: 1px solid rgba(124,111,224,0.28);
+  color: rgba(124,111,224,0.95); padding: 9px 22px; border-radius: 22px;
+  font-size: 13px; font-weight: 500; opacity: 0; transition: all 0.28s;
+  pointer-events: none; z-index: 9999; white-space: nowrap;
+  box-shadow: 0 8px 36px rgba(0,0,0,0.65); font-family: 'Outfit', sans-serif;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ════════════════════════════════════════
+   DESKTOP LAYOUT
+════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  #sidebar { position: relative; transform: translateX(0) !important; flex-shrink: 0; height: 100%; }
+  #overlay { display: none !important; }
+  .menu-btn { display: none; }
+  #shell { flex-direction: row; }
+}
+@media (max-width: 1023px) {
+  #shell { flex-direction: row; }
+  #main { width: 100%; min-width: 0; }
+  .bubble { max-width: 90%; }
+}
+@media (max-width: 480px) {
+  .api-card { padding: 30px 20px; border-radius: 20px; }
+  .api-icon { width: 60px; height: 60px; font-size: 28px; margin-bottom: 16px; }
+  .api-card h2 { font-size: 26px; }
+  .brand-name { font-size: 17px; }
+  .provider-grid { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .provider-btn { padding: 10px 4px; }
+  .provider-name { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- ════════ API SCREEN ════════ -->
+<div id="apiScreen">
+  <div class="api-card">
+    <div class="api-icon">✦</div>
+    <h2>Aura AI</h2>
+    <p style="margin-bottom:0">Choose your AI provider and enter your API key</p>
+
+    <div class="provider-label">Select AI Provider</div>
+    <div class="provider-grid">
+      <div class="provider-btn selected" id="btn-anthropic" onclick="selectProvider('anthropic')">
+        <span class="provider-icon">🟣</span>
+        <span class="provider-name">Claude</span>
+        <span class="provider-model">Anthropic</span>
+      </div>
+      <div class="provider-btn" id="btn-openai" onclick="selectProvider('openai')">
+        <span class="provider-icon">🟢</span>
+        <span class="provider-name">GPT</span>
+        <span class="provider-model">OpenAI</span>
+      </div>
+      <div class="provider-btn" id="btn-gemini" onclick="selectProvider('gemini')">
+        <span class="provider-icon">🔵</span>
+        <span class="provider-name">Gemini</span>
+        <span class="provider-model">Google</span>
+      </div>
+    </div>
+
+    <div class="api-howto" id="apiHowto">
+      <strong>🟣 Anthropic (Claude)</strong>
+      Get your free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>
+      Key starts with <code style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">sk-ant-</code>
+    </div>
+
+    <div class="key-row">
+      <input id="apiKeyIn" class="api-input" type="password"
+        placeholder="sk-ant-api03-..."
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter') saveKey()">
+      <button class="toggle-vis" onclick="toggleKeyVis()" title="Show/hide key">👁</button>
+    </div>
+
+    <div id="apiErr" class="api-err">⚠️ <span id="apiErrMsg">Invalid API key format</span></div>
+    <button class="api-btn-primary" onclick="saveKey()">Connect & Start Chatting ✦</button>
+
+    <!-- Saved keys -->
+    <div class="saved-keys-section" id="savedKeysSection" style="display:none">
+      <div class="saved-keys-label">Saved Keys</div>
+      <div id="savedKeysList"></div>
+    </div>
+
+    <div class="api-foot">
+      Your key is stored locally in your browser only.<br>
+      <a href="https://console.anthropic.com" target="_blank">Anthropic</a> ·
+      <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a> ·
+      <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI</a>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ OVERLAY ════════ -->
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ════════ SHELL ════════ -->
+<div id="shell">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-icon">✦</div>
+        <span class="sb-name">Aura AI</span>
+      </div>
+      <button class="sb-close" onclick="closeSidebar()">✕</button>
+    </div>
+    <button class="sb-new" onclick="newChat()">＋  New Conversation</button>
+    <div class="sb-label">History</div>
+    <div class="sb-list" id="chatList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="brand-area">
+          <div class="brand-logo">✦</div>
+          <div class="brand-text">
+            <div class="brand-name">Aura AI</div>
+            <div class="brand-sub" id="headerSub">Personal AI</div>
+          </div>
+        </div>
+      </div>
+      <div class="status-pill off" id="statusPill" onclick="changeKey()">
+        <div class="status-dot"></div>
+        <span id="statusLabel">No Key</span>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="msgs"></div>
+
+    <!-- IMAGE PREVIEW BAR -->
+    <div id="imgPreviewBar">
+      <img id="imgThumb" src="" alt="preview">
+      <div class="img-label">
+        <strong>Image attached</strong>
+        <span>Will send with your message</span>
+      </div>
+      <button class="img-remove" onclick="clearImg()">×</button>
+    </div>
+
+    <!-- CAMERA SECTION -->
+    <div id="camSection">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <canvas id="snapCanvas"></canvas>
+      <div class="cam-controls">
+        <button class="cam-btn capture" onclick="captureSnap()">📸 Capture</button>
+        <button class="cam-btn close-cam" onclick="closeCam()">✕ Close</button>
+      </div>
+    </div>
+
+    <!-- Camera error help -->
+    <div class="cam-help" id="camHelp">
+      <p><strong>Camera blocked.</strong> To allow camera access in Chrome:<br>
+      Tap the 🔒 lock icon → <strong>Site settings</strong> → allow <strong>Camera</strong>, then reload.</p>
+    </div>
+
+    <!-- INPUT BAR -->
+    <div class="input-bar">
+      <div class="rec-indicator" id="recIndicator">
+        <div class="rec-dot"></div>
+        <span class="rec-label" id="recLabel">Listening…</span>
+        <button class="rec-stop" onclick="stopMic()">■ Stop</button>
+      </div>
+      <div class="input-row">
+        <input id="msgInput" type="text" placeholder="Ask Aura anything…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();sendMsg()}">
+        <div class="action-btns">
+          <button class="act-btn" id="micBtn" onclick="toggleMic()" title="Voice input">🎤</button>
+          <button class="act-btn" id="camBtn" onclick="toggleCam()" title="Camera">📷</button>
+          <button class="act-btn" onclick="triggerUpload()" title="Upload image">🖼️</button>
+          <button class="send-btn" onclick="sendMsg()" title="Send">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-hint" id="inputHint">Powered by Claude · Voice · Camera · Images · Chat History</div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" onchange="handleUpload(event)">
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+function lsGet(k, def) {
+  try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+// Multi-provider key storage: { anthropic: 'sk-ant-...', openai: 'sk-...', gemini: 'AIza...' }
+let savedKeys     = lsGet('aura_keys', {});
+let activeProvider= lsGet('aura_provider', 'anthropic');
+let selectedProv  = activeProvider; // selection in the API screen
+
+let chats         = lsGet('aura_chats', null) || [{ id: 1, title: 'New Chat', msgs: [] }];
+let currentId     = chats[0].id;
+let busy          = false;
+let recognition   = null;
+let isListening   = false;
+let pendingImg    = null;
+let camStream     = null;
+let camReady      = false;
+
+const $ = id => document.getElementById(id);
+const md = $('msgs');
+
+/* ════════════════════════════════════════
+   PROVIDER CONFIG
+════════════════════════════════════════ */
+const PROVIDERS = {
+  anthropic: {
+    name: 'Claude',
+    label: '🟣 Anthropic (Claude)',
+    hint: 'Key starts with sk-ant-',
+    placeholder: 'sk-ant-api03-...',
+    helpHTML: 'Get your free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>Key starts with <code style="font-family:\'JetBrains Mono\',monospace;color:var(--cyan)">sk-ant-</code>',
+    validate: k => k.startsWith('sk-ant-'),
+    errMsg: 'Key must start with sk-ant-',
+    statusLabel: 'Claude Ready',
+    inputHint: 'Powered by Claude · Voice · Camera · Images',
+  },
+  openai: {
+    name: 'GPT-4o',
+    label: '🟢 OpenAI (ChatGPT)',
+    hint: 'Key starts with sk-',
+    placeholder: 'sk-proj-...',
+    helpHTML: 'Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a><br>Key starts with <code style="font-family:\'JetBrains Mono\',monospace;color:var(--cyan)">sk-</code>',
+    validate: k => k.startsWith('sk-'),
+    errMsg: 'Key must start with sk-',
+    statusLabel: 'GPT-4o Ready',
+    inputHint: 'Powered by GPT-4o · Voice · Camera · Images',
+  },
+  gemini: {
+    name: 'Gemini',
+    label: '🔵 Google Gemini',
+    hint: 'Key starts with AIza',
+    placeholder: 'AIzaSy...',
+    helpHTML: 'Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br>Key starts with <code style="font-family:\'JetBrains Mono\',monospace;color:var(--cyan)">AIza</code>',
+    validate: k => k.startsWith('AIza') || k.length > 20,
+    errMsg: 'Please enter a valid Gemini API key (starts with AIza)',
+    statusLabel: 'Gemini Ready',
+    inputHint: 'Powered by Gemini · Voice · Camera · Images',
+  },
+};
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+function showToast(msg, ms = 3000) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function save() { lsSet('aura_chats', chats); }
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function currentChat() { return chats.find(c => c.id === currentId); }
+
+function maskKey(k) {
+  if (!k || k.length < 10) return '••••••••';
+  return k.slice(0, 8) + '••••' + k.slice(-4);
+}
+
+/* ════════════════════════════════════════
+   PROVIDER SELECTION (on API screen)
+════════════════════════════════════════ */
+function selectProvider(prov) {
+  selectedProv = prov;
+  // Update button styles
+  ['anthropic','openai','gemini'].forEach(p => {
+    const btn = $('btn-' + p);
+    btn.className = 'provider-btn';
+    if (p === prov) {
+      btn.className = prov === 'anthropic' ? 'provider-btn selected'
+                    : prov === 'openai'    ? 'provider-btn selected-openai'
+                    :                        'provider-btn selected-gemini';
+    }
+  });
+  // Update howto text
+  const cfg = PROVIDERS[prov];
+  $('apiHowto').innerHTML = `<strong>${cfg.label}</strong>${cfg.helpHTML}`;
+  // Update input placeholder
+  $('apiKeyIn').placeholder = cfg.placeholder;
+  // Prefill if key already saved for this provider
+  $('apiKeyIn').value = savedKeys[prov] || '';
+  $('apiErr').classList.remove('show');
+}
+
+function toggleKeyVis() {
+  const inp = $('apiKeyIn');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+/* ════════════════════════════════════════
+   SAVE KEY
+════════════════════════════════════════ */
+function saveKey() {
+  const k = $('apiKeyIn').value.trim();
+  const cfg = PROVIDERS[selectedProv];
+  const errEl = $('apiErr');
+
+  if (!k || !cfg.validate(k)) {
+    $('apiErrMsg').textContent = cfg.errMsg;
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+
+  savedKeys[selectedProv] = k;
+  activeProvider = selectedProv;
+  lsSet('aura_keys', savedKeys);
+  lsSet('aura_provider', activeProvider);
+
+  $('apiScreen').classList.add('hidden');
+  setStatus(true);
+  renderMsgs();
+  showToast(`✦ ${cfg.name} connected — Aura is ready!`);
+}
+
+function changeKey() {
+  selectedProv = activeProvider;
+  selectProvider(activeProvider);
+  renderSavedKeys();
+  $('apiScreen').classList.remove('hidden');
+}
+
+function renderSavedKeys() {
+  const keys = Object.entries(savedKeys).filter(([,v]) => v);
+  const section = $('savedKeysSection');
+  const list = $('savedKeysList');
+  if (!keys.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  const badges = { anthropic: '🟣', openai: '🟢', gemini: '🔵' };
+  const names  = { anthropic: 'Anthropic (Claude)', openai: 'OpenAI (GPT-4o)', gemini: 'Google Gemini' };
+  list.innerHTML = keys.map(([prov, key]) => `
+    <div class="saved-key-item" onclick="switchToProvider('${prov}')">
+      <span class="saved-key-badge">${badges[prov] || '🔑'}</span>
+      <div class="saved-key-info">
+        <div class="saved-key-provider">${names[prov] || prov}${prov === activeProvider ? ' <span style="color:var(--green);font-size:10px">● Active</span>' : ''}</div>
+        <div class="saved-key-mask">${maskKey(key)}</div>
+      </div>
+      <button class="saved-key-del" onclick="deleteKey('${prov}', event)" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function switchToProvider(prov) {
+  activeProvider = prov;
+  lsSet('aura_provider', prov);
+  $('apiScreen').classList.add('hidden');
+  setStatus(true);
+  renderMsgs();
+  showToast(`✦ Switched to ${PROVIDERS[prov]?.name || prov}`);
+}
+
+function deleteKey(prov, e) {
+  e.stopPropagation();
+  delete savedKeys[prov];
+  lsSet('aura_keys', savedKeys);
+  if (activeProvider === prov) {
+    const remaining = Object.keys(savedKeys).filter(k => savedKeys[k]);
+    activeProvider = remaining[0] || '';
+    lsSet('aura_provider', activeProvider);
+  }
+  renderSavedKeys();
+  if (!Object.keys(savedKeys).filter(k => savedKeys[k]).length) {
+    setStatus(false);
+  } else {
+    setStatus(true);
+  }
+  showToast('🗑️ Key removed');
+}
+
+function setStatus(on) {
+  const pill  = $('statusPill');
+  const label = $('statusLabel');
+  const sub   = $('headerSub');
+  const hint  = $('inputHint');
+  if (on && activeProvider) {
+    const cfg = PROVIDERS[activeProvider];
+    pill.className = 'status-pill on';
+    label.textContent = cfg ? cfg.statusLabel : 'AI Ready';
+    if (sub) sub.textContent = cfg ? cfg.name : 'AI';
+    if (hint) hint.textContent = cfg ? cfg.inputHint : 'AI Ready';
+  } else {
+    pill.className = 'status-pill off';
+    label.textContent = 'No Key';
+    if (sub) sub.textContent = 'Personal AI';
+    if (hint) hint.textContent = 'Add an API key to start · Voice · Camera · Images';
+  }
+}
+
+// On load: show app if any key exists
+const hasKey = activeProvider && savedKeys[activeProvider];
+if (hasKey) {
+  $('apiScreen').classList.add('hidden');
+  setStatus(true);
+} else {
+  selectProvider('anthropic');
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════ */
+function toggleSidebar() {
+  const sb = $('sidebar'), ov = $('overlay');
+  if (sb.classList.contains('open')) { sb.classList.remove('open'); ov.classList.remove('show'); }
+  else { sb.classList.add('open'); ov.classList.add('show'); }
+}
+function closeSidebar() { $('sidebar').classList.remove('open'); $('overlay').classList.remove('show'); }
+
+function renderList() {
+  const list = $('chatList');
+  if (!chats.length) {
+    list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text3)">No conversations yet</div>';
+    return;
+  }
+  list.innerHTML = chats.map(c => `
+    <div class="chat-item ${c.id === currentId ? 'active' : ''}" onclick="switchChat(${c.id})">
+      <div class="chat-item-info">
+        <div class="chat-item-title">${esc(c.title)}</div>
+        <div class="chat-item-meta">${c.msgs.length} message${c.msgs.length !== 1 ? 's' : ''}</div>
+      </div>
+      <button class="chat-del" onclick="deleteChat(${c.id}, event)" title="Delete">✕</button>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   RENDER MESSAGES
+════════════════════════════════════════ */
+function renderMsgs() {
+  const chat = currentChat();
+  const provName = PROVIDERS[activeProvider]?.name || 'AI';
+  if (!chat || !chat.msgs.length) {
+    md.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✦</div>
+        <h2>Hello, I'm Aura</h2>
+        <p>Powered by ${provName}. Ask me anything — code, ideas, images, or questions.</p>
+        <div class="quick-chips">
+          <div class="chip" onclick="quickSend('Write a JavaScript debounce function with explanation')">💻 JavaScript</div>
+          <div class="chip" onclick="quickSend('Build a beautiful responsive HTML landing page')">🌐 HTML Page</div>
+          <div class="chip" onclick="quickSend('Write a Python script to read and filter a CSV file')">🐍 Python</div>
+          <div class="chip" onclick="quickSend('Explain how neural networks learn, with simple analogies')">🧠 Explain AI</div>
+          <div class="chip" onclick="quickSend('Create a glassmorphism CSS card component')">🎨 CSS Design</div>
+          <div class="chip" onclick="quickSend('Help me find and fix bugs in my code')">🔧 Debug</div>
+        </div>
+      </div>`;
+    return;
+  }
+  md.innerHTML = chat.msgs.map(m => `
+    <div class="msg-row ${m.role}">
+      <div class="bubble">
+        ${m.img ? `<img src="${m.img}" alt="attached image" loading="lazy">` : ''}
+        ${formatText(m.text)}
+      </div>
+    </div>`).join('');
+  requestAnimationFrame(() => { md.scrollTop = md.scrollHeight; });
+}
+
+/* ════════════════════════════════════════
+   MARKDOWN → HTML
+════════════════════════════════════════ */
+function formatText(text) {
+  if (!text) return '';
+  const codeBlocks = [];
+  let out = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const idx = codeBlocks.length;
+    const label = lang ? lang.toUpperCase() : 'CODE';
+    codeBlocks.push(
+      `<div class="code-wrap">` +
+      `<div class="code-header">` +
+      `<span class="code-lang">${esc(label)}</span>` +
+      `<button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>` +
+      `</div><pre>${esc(code.trim())}</pre></div>`
+    );
+    return `\x00C${idx}\x00`;
+  });
+  out = out.replace(/`([^`\n]+)`/g, `<code class="inline">$1</code>`);
+  out = out.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  out = out.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  out = out.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  out = out.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  out = out.replace(/^---$/gm, '<hr>');
+  out = out.replace(/^\s*[-•*]\s+(.+)/gm, '<li>$1</li>');
+  out = out.replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>');
+  out = out.replace(/<\/ul>\s*<ul>/g, '');
+  out = out.replace(/\n/g, '<br>');
+  codeBlocks.forEach((b, i) => { out = out.replace(`\x00C${i}\x00`, b); });
+  return out;
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-header').nextElementSibling;
+  const text = pre.innerText || pre.textContent;
+  navigator.clipboard?.writeText(text).then(() => {
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  }).catch(() => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    } catch {}
+  });
+}
+
+/* ════════════════════════════════════════
+   ADD MESSAGE
+════════════════════════════════════════ */
+function addMsg(role, text, img = null) {
+  const chat = currentChat();
+  if (!chat) return;
+  chat.msgs.push({ role, text, img });
+  if (chat.msgs.length === 1) {
+    chat.title = text.slice(0, 40) + (text.length > 40 ? '…' : '');
+  }
+  renderMsgs(); renderList(); save();
+}
+
+/* ════════════════════════════════════════
+   SEND MESSAGE
+════════════════════════════════════════ */
+function sendMsg() {
+  const t = $('msgInput').value.trim();
+  if ((!t && !pendingImg) || busy) return;
+  const msgText = t || 'Please describe or analyze this image.';
+  const imgData = pendingImg;
+  $('msgInput').value = '';
+  clearImg(); closeCam();
+  addMsg('user', msgText, imgData);
+  closeSidebar();
+  askAI(msgText, imgData);
+}
+
+function quickSend(text) { $('msgInput').value = text; sendMsg(); }
+
+/* ════════════════════════════════════════
+   TYPING INDICATOR
+════════════════════════════════════════ */
+function showTyping() {
+  const el = document.createElement('div');
+  el.id = 'typingRow'; el.className = 'typing-row';
+  el.innerHTML = `<div class="typing-bub">
+    <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+  </div>`;
+  md.appendChild(el);
+  md.scrollTop = md.scrollHeight;
+}
+function hideTyping() { const el = $('typingRow'); if (el) el.remove(); }
+
+/* ════════════════════════════════════════
+   AI ROUTER — dispatches to correct provider
+════════════════════════════════════════ */
+const SYSTEM_PROMPT = 'You are Aura, a helpful, warm, and brilliant personal AI assistant. Help with coding (JavaScript, Python, HTML, CSS, React, etc.), web design, debugging, creative writing, explanations, and image analysis. Always wrap code in triple backticks with the language name. Use clean markdown formatting. Be thorough yet concise. Your name is Aura.';
+
+async function askAI(userText, imageData = null) {
+  busy = true;
+  showTyping();
+
+  const key = savedKeys[activeProvider];
+
+  if (!key) {
+    await new Promise(r => setTimeout(r, 700));
+    hideTyping();
+    addMsg('ai', demoReply(userText));
+    busy = false;
+    return;
+  }
+
+  try {
+    switch (activeProvider) {
+      case 'anthropic': await callAnthropic(key, userText, imageData); break;
+      case 'openai':    await callOpenAI(key, userText, imageData);    break;
+      case 'gemini':    await callGemini(key, userText, imageData);    break;
+      default: throw new Error('Unknown provider');
+    }
+  } catch (e) {
+    hideTyping();
+    if (e.message && e.message.includes('fetch')) {
+      addMsg('ai', '**⚠️ Could not connect.**\n\nThis app must be hosted on HTTPS to call AI APIs from the browser.\n\nHost it free at **netlify.com/drop** or **GitHub Pages**, then it will work perfectly.');
+    } else {
+      addMsg('ai', `**❌ Error:** ${e.message}`);
+    }
+  }
+  busy = false;
+}
+
+/* ────── ANTHROPIC ────── */
+async function callAnthropic(key, userText, imageData) {
+  const chat = currentChat();
+  const messages = [];
+  const history = chat.msgs.slice(0, -1).slice(-20);
+
+  for (const m of history) {
+    const role = m.role === 'ai' ? 'assistant' : 'user';
+    if (m.role === 'user' && m.img) {
+      const mediaType = m.img.match(/data:(image\/\w+);/)?.[1] || 'image/jpeg';
+      const b64 = m.img.split(',')[1];
+      messages.push({ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+        { type: 'text', text: m.text }
+      ]});
+    } else {
+      messages.push({ role, content: m.text });
+    }
+  }
+
+  if (imageData) {
+    const mediaType = imageData.match(/data:(image\/\w+);/)?.[1] || 'image/jpeg';
+    const b64 = imageData.split(',')[1];
+    messages.push({ role: 'user', content: [
+      { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+      { type: 'text', text: userText }
+    ]});
+  } else {
+    messages.push({ role: 'user', content: userText });
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: SYSTEM_PROMPT,
+      messages
+    })
+  });
+
+  hideTyping();
+  if (res.ok) {
+    const d = await res.json();
+    addMsg('ai', d.content?.[0]?.text || 'No response received.');
+  } else {
+    const err = await res.json().catch(() => ({}));
+    handleProviderError(res.status, err.error?.message, 'anthropic');
+  }
+}
+
+/* ────── OPENAI ────── */
+async function callOpenAI(key, userText, imageData) {
+  const chat = currentChat();
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const history = chat.msgs.slice(0, -1).slice(-20);
+
+  for (const m of history) {
+    const role = m.role === 'ai' ? 'assistant' : 'user';
+    if (m.role === 'user' && m.img) {
+      messages.push({ role: 'user', content: [
+        { type: 'image_url', image_url: { url: m.img } },
+        { type: 'text', text: m.text }
+      ]});
+    } else {
+      messages.push({ role, content: m.text });
+    }
+  }
+
+  if (imageData) {
+    messages.push({ role: 'user', content: [
+      { type: 'image_url', image_url: { url: imageData } },
+      { type: 'text', text: userText }
+    ]});
+  } else {
+    messages.push({ role: 'user', content: userText });
+  }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 2048,
+      messages
+    })
+  });
+
+  hideTyping();
+  if (res.ok) {
+    const d = await res.json();
+    addMsg('ai', d.choices?.[0]?.message?.content || 'No response received.');
+  } else {
+    const err = await res.json().catch(() => ({}));
+    handleProviderError(res.status, err.error?.message, 'openai');
+  }
+}
+
+/* ────── GOOGLE GEMINI ────── */
+async function callGemini(key, userText, imageData) {
+  const chat = currentChat();
+  const contents = [];
+  const history = chat.msgs.slice(0, -1).slice(-20);
+
+  for (const m of history) {
+    const role = m.role === 'ai' ? 'model' : 'user';
+    if (m.role === 'user' && m.img) {
+      const mediaType = m.img.match(/data:(image\/\w+);/)?.[1] || 'image/jpeg';
+      const b64 = m.img.split(',')[1];
+      contents.push({ role: 'user', parts: [
+        { inline_data: { mime_type: mediaType, data: b64 } },
+        { text: m.text }
+      ]});
+    } else {
+      contents.push({ role, parts: [{ text: m.text }] });
+    }
+  }
+
+  if (imageData) {
+    const mediaType = imageData.match(/data:(image\/\w+);/)?.[1] || 'image/jpeg';
+    const b64 = imageData.split(',')[1];
+    contents.push({ role: 'user', parts: [
+      { inline_data: { mime_type: mediaType, data: b64 } },
+      { text: userText }
+    ]});
+  } else {
+    contents.push({ role: 'user', parts: [{ text: userText }] });
+  }
+
+  const systemInstruction = { parts: [{ text: SYSTEM_PROMPT }] };
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system_instruction: systemInstruction, contents, generationConfig: { maxOutputTokens: 2048 } })
+    }
+  );
+
+  hideTyping();
+  if (res.ok) {
+    const d = await res.json();
+    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+    addMsg('ai', text);
+  } else {
+    const err = await res.json().catch(() => ({}));
+    handleProviderError(res.status, err.error?.message, 'gemini');
+  }
+}
+
+/* ────── Error handler ────── */
+function handleProviderError(status, errMsg, provider) {
+  if (status === 401 || status === 403) {
+    addMsg('ai', `**❌ Invalid API key for ${PROVIDERS[provider]?.name || provider}.**\n\nTap the status pill (top right) to update your key.`);
+    setStatus(false);
+  } else if (status === 429) {
+    addMsg('ai', '**⏳ Rate limit reached.** Please wait a moment and try again.');
+  } else if (status === 400) {
+    addMsg('ai', `**⚠️ Bad request:** ${errMsg || 'Unknown error'}\n\nThis can happen with very large images. Try a smaller image.`);
+  } else {
+    addMsg('ai', `**❌ Error (${status}):** ${errMsg || 'Unknown error'}`);
+  }
+}
+
+/* ════════════════════════════════════════
+   DEMO MODE — no key
+════════════════════════════════════════ */
+function demoReply(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('javascript') || m.includes('js') || m.includes('debounce'))
+    return `Here's a clean debounce function in JavaScript:\n\n\`\`\`javascript\nfunction debounce(fn, delay = 300) {\n  let timer;\n  return function (...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}\n\n// Example: search input\nconst onSearch = debounce((query) => {\n  console.log('Searching for:', query);\n}, 400);\n\`\`\`\n\n**How it works:** Every call resets the timer. Only when the user stops for 400ms does it actually run.\n\n*This is demo mode — add an API key to get live AI responses.*`;
+
+  if (m.includes('python') || m.includes('csv'))
+    return `Here's a Python CSV processor:\n\n\`\`\`python\nimport csv\nfrom pathlib import Path\n\ndef load_csv(path):\n    with open(Path(path), newline='', encoding='utf-8') as f:\n        return list(csv.DictReader(f))\n\ndef filter_rows(data, key, value):\n    return [row for row in data if row.get(key) == value]\n\nrows = load_csv('data.csv')\nprint(f"Loaded {len(rows)} rows")\n\`\`\`\n\n*Demo mode — add your API key for full AI responses.*`;
+
+  return `Hello! I'm **Aura**, your personal AI assistant ✦\n\nI support **three AI providers**:\n\n- **🟣 Claude** (Anthropic) — starts with \`sk-ant-\`\n- **🟢 GPT-4o** (OpenAI) — starts with \`sk-\`\n- **🔵 Gemini** (Google) — starts with \`AIza\`\n\n**To get started:**\n1. Tap the **red status pill** (top right)\n2. Select your AI provider\n3. Enter your API key\n4. Start chatting!\n\nOr just type — demo mode works for code examples!`;
+}
+
+/* ════════════════════════════════════════
+   CHAT MANAGEMENT
+════════════════════════════════════════ */
+function newChat() {
+  const id = Date.now();
+  chats.unshift({ id, title: 'New Chat', msgs: [] });
+  currentId = id;
+  clearImg(); closeCam(); stopMic();
+  renderMsgs(); renderList(); closeSidebar(); save();
+}
+function switchChat(id) {
+  currentId = id;
+  clearImg(); closeCam(); stopMic();
+  renderMsgs(); renderList(); closeSidebar();
+}
+function deleteChat(id, e) {
+  e.stopPropagation();
+  if (chats.length === 1) { showToast('⚠️ Cannot delete the only conversation'); return; }
+  chats = chats.filter(c => c.id !== id);
+  if (currentId === id) currentId = chats[0].id;
+  renderMsgs(); renderList(); save();
+  showToast('🗑️ Conversation deleted');
+}
+
+/* ════════════════════════════════════════
+   CAMERA
+════════════════════════════════════════ */
+function toggleCam() {
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) { openNativeCam(); return; }
+  if (camStream) { closeCam(); } else { openCam(); }
+}
+
+function openNativeCam() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.style.position = 'fixed'; input.style.top = '-9999px';
+  document.body.appendChild(input);
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { setPendingImg(ev.target.result); showToast('📸 Photo ready! Add a message and send.'); };
+    reader.readAsDataURL(file);
+  };
+  input.oncancel = () => { try { document.body.removeChild(input); } catch {} };
+  setTimeout(() => { try { document.body.removeChild(input); } catch {} }, 60000);
+  input.click();
+}
+
+async function openCam() {
+  $('camHelp').classList.remove('show');
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showToast('📷 Camera not supported. Use 🖼️ to upload a photo.');
+    return;
+  }
+  const constraints = [
+    { video: { facingMode: { ideal: 'environment' } }, audio: false },
+    { video: true, audio: false }
+  ];
+  let stream = null;
+  for (const c of constraints) {
+    try { stream = await navigator.mediaDevices.getUserMedia(c); break; }
+    catch (e) {
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        $('camHelp').classList.add('show');
+        showToast('📷 Camera blocked — allow in browser settings.');
+        return;
+      }
+    }
+  }
+  if (!stream) { showToast('📷 No camera found. Use 🖼️ to upload a photo.'); return; }
+  camStream = stream; camReady = false;
+  const vid = $('camVideo');
+  vid.srcObject = stream;
+  await new Promise((resolve) => {
+    const done = () => { camReady = true; resolve(); };
+    vid.onloadedmetadata = () => { vid.play().then(() => { vid.onplaying = done; setTimeout(done, 1500); }).catch(done); };
+    setTimeout(done, 4000);
+  });
+  $('camSection').style.display = 'block';
+  $('camBtn').classList.add('active-cam');
+  showToast('📷 Camera ready — tap Capture!');
+}
+
+function captureSnap() {
+  if (!camStream || !camReady) { showToast('⏳ Camera is still loading, please wait…'); return; }
+  const vid = $('camVideo');
+  if (!vid.videoWidth || !vid.videoHeight) { showToast('⚠️ Camera stream not ready yet.'); return; }
+  const canvas = $('snapCanvas');
+  canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  setPendingImg(dataUrl); closeCam();
+  showToast('📸 Photo captured! Add a message and send.');
+}
+
+function closeCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; camReady = false; }
+  const vid = $('camVideo');
+  vid.srcObject = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  $('camSection').style.display = 'none';
+  $('camBtn').classList.remove('active-cam');
+}
+
+/* ════════════════════════════════════════
+   IMAGE UPLOAD
+════════════════════════════════════════ */
+function triggerUpload() {
+  const fi = $('fileInput');
+  fi.removeAttribute('capture');
+  fi.value = '';
+  fi.click();
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('⚠️ Please select an image file'); return; }
+  if (file.size > 20 * 1024 * 1024) { showToast('⚠️ Image too large — max 20MB'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => { setPendingImg(ev.target.result); showToast('🖼️ Image attached! Add a message and send.'); };
+  reader.onerror = () => showToast('❌ Failed to read file. Try again.');
+  reader.readAsDataURL(file);
+}
+
+function setPendingImg(dataUrl) {
+  pendingImg = dataUrl;
+  $('imgThumb').src = dataUrl;
+  $('imgPreviewBar').classList.add('show');
+}
+
+function clearImg() {
+  pendingImg = null;
+  $('imgThumb').src = '';
+  $('imgPreviewBar').classList.remove('show');
+}
+
+/* ════════════════════════════════════════
+   VOICE / MICROPHONE
+════════════════════════════════════════ */
+function toggleMic() {
+  if (isListening) { stopMic(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('🎤 Voice requires Chrome or Edge browser'); return; }
+  try {
+    recognition = new SR();
+    recognition.lang = navigator.language || 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListening = true;
+      $('micBtn').classList.add('active-mic');
+      $('recIndicator').classList.add('show');
+      $('recLabel').textContent = 'Listening…';
+    };
+    recognition.onresult = e => {
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t; else interim += t;
+      }
+      if (interim && !final) {
+        $('msgInput').value = interim;
+        $('recLabel').textContent = '🎙 ' + interim.slice(0, 32) + (interim.length > 32 ? '…' : '');
+      }
+      if (final) {
+        $('msgInput').value = final;
+        isListening = false;
+        if (recognition) { try { recognition.stop(); } catch {} }
+        setTimeout(() => { clearMicUI(); if (final.trim()) sendMsg(); }, 200);
+      }
+    };
+    recognition.onspeechend = () => { try { recognition.stop(); } catch {} };
+    recognition.onerror = err => {
+      const msgs = { 'no-speech': '🎤 No speech detected. Try again.', 'not-allowed': '🎤 Microphone blocked. Allow access in browser settings.', 'audio-capture': '🎤 No microphone found.', 'network': '🎤 Network error with voice recognition.', 'aborted': null };
+      const msg = msgs[err.error];
+      if (msg) showToast(msg);
+      clearMicUI();
+    };
+    recognition.onend = () => { if (isListening) clearMicUI(); };
+    recognition.start();
+  } catch (e) { showToast('🎤 Could not start microphone: ' + e.message); clearMicUI(); }
+}
+
+function stopMic() {
+  isListening = false;
+  if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
+  clearMicUI();
+}
+
+function clearMicUI() {
+  isListening = false; recognition = null;
+  $('micBtn').classList.remove('active-mic');
+  $('recIndicator').classList.remove('show');
+  $('recLabel').textContent = 'Listening…';
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+renderList();
+renderMsgs();
+
+window.addEventListener('resize', () => { setTimeout(() => { md.scrollTop = md.scrollHeight; }, 100); });
+$('msgInput').addEventListener('focus', () => { setTimeout(() => { md.scrollTop = md.scrollHeight; }, 350); });
+</script>
+</body>
+</html>
